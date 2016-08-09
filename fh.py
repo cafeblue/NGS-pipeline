@@ -10,6 +10,7 @@ print(str(num_lines) + "\n")
 
 for line in open("test.txt", 'r'):
     line = line.rstrip()
-    print("a")
     print("Line:\t" + str(line))
+    print("a")
+
     print("b")
