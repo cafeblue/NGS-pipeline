@@ -30,7 +30,10 @@ def main(name, dbfile, ppid, checkpoint):
         print("rows of command for ppID: $s are more than one, it is impossible!!!" % (str(ppid)))
         sys.exit(2)
 
-    command = re.sub(r' "$', r' -i %s "' % (checkpoint), command[0]['command'])
+    command = re.sub(r'"$', r' -i %s "' % (checkpoint), command[0]['command'])
+    print('====================')
+    print(command)
+    print('====================')
     os.system(command)
 
     update = DB_Connector(dbfile)
