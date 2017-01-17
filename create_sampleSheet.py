@@ -1,13 +1,16 @@
+#! /bin/env python3
+
+"""
+    This script is to read the latest records in table sampleSheet and generate the samplesheet for the sequencer.
+"""
+
+
 import sys
-
+import os
 import pickle
-import pymysql
-import pymysql.cursors
+from pathlib import Path
+from utils import *
 
-#conn= pymysql.connect(host='localhost',user='user',password='user',db='testdb',charset='utf8mb4',cursorclass=pymysql.cursors.DictCursor)
-#a=conn.cursor()
-#sql='CREATE TABLE `users` (`id` int(11) NOT NULL AUTO_INCREMENT,`email` varchar(255) NOT NULL,`password` varchar(255) NOT NULL,PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;'
-#a.execute(sql)
 
 class Usage:
     """
@@ -19,71 +22,51 @@ class Usage:
 
     """
 
-class DBCfg():
-    def __init__(self, dbfile):
-        db = pickle.load( open( dbfile, "rb" ) )
-
-class DB_Connector(DBCfg):
-    """ Humble Database Connection Class """
-    def __init__(self, dbfile):
-        self.cfg = DBcfg(dbfile)
-        self.CreateConnection()
-
-    def CreateConnection( self ):
-        #self.conn = pymysql.connect(host='localhost', db='clinicalB', user='wei.wang', port=5029, passwd='baccaharis')
-        self.conn = pymysql.connect(host=self.cfg.db['host'], db=self.cfg.db['db'], user=self.cfg.db['user'], port=self.cfg.db['port'], passwd=self.cfg.db['passwd'])
-        self.cursor = self.conn.cursor(pymysql.cursors.DictCursor)
-
-    def DestroyConnection( self ):
-        self.cursor.close()
-
-    def Execute( self, sql_statement ):
-        self.cursor.execute(sql_statement)
-        return self.cursor
-
-class NewRows(DB_Connector):
-    """ Grab the latest rows in the table sampleSheet """
-    def __init__(self):
-        self.newrows = []
-
-    def __len__(self):
-        return len(self.newrows)
-
-    def ReadNewRows(self):
-        sql_query = "SELECT * FROM sampleSheet WHERE TIMESTAMPADD(DAY,5,time) > NOW()"
-        self.Execute(sql_query)
-
 class SampleSheet():
+    """ An object for samplesheet issues """
 
-    def __init__(self, rows):
-        self.rows = rows
+    def __init__(self, rows, conn):
+        self.conn = conn
+        self.byflowcell = dict()
+        self.hiseq_samplesheet = "FCID,Lane,SampleID,SampleRef,Index,Description,Control,Recipe,Operator,SampleProject\n"
+        self.bcltools_samplesheet = '[Header]\nIEMFileVersion,4\nDate,{1}\nWorkflow,GenerateFASTQ\nApplication,{2} FASTQ Only\nAssay,TruSeq HT\nDescription,\nChemistry,Default\n\n[Reads]\n{3}\n{4}\n\n[Settings]\nAdapter,AGATCGGAAGAGCACACGTCTGAACTCCAGTCA\nAdapterRead2,AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT\n\n[Data]\n'
+        self.list2dict(rows)
+    
+    def list2dict(self, rows):
+        for row in rows:
+            if not row['flowcell_ID'] in self.byflowcell:
+                self.byflowcell[row['flowcell_ID']] = list()
+                self.byflowcell[row['flowcell_ID']].append(row)
 
-    def SequencerSampleSheet(self):
+            else:
+                self.byflowcell[row['flowcell_ID']].append(row)
+
+    def hiseq_samplesheet(self):
+        self.hiseq_samplesheet.append("abc")
+
+
+def main(name, dbfile):
+
+    if Path(dbfile).is_file(): 
         pass
-
-    def DemultiplexSampleSheet(self):
-        pass
-
-class NewSampleSheet(NewRows):
-    def __init__(self):
-        self.allrows = []
-
-    def GetNewRows(self):
-        self.ReadNewRows()
-
-
-def main(prog_argvs):
-    if len(prog_argvs) != 2:
+    else:
+        print("ERR: file: " + str(dbfile) + " does not exists!")
         print(Usage.__doc__)
         sys.exit(2)
 
-    else :
-        samplesheets = NewRows()
-        abc = samplesheets.ReadNewRows()
-        for row in abc:
-            print(row)
-        #samplesheets.GetNewRows()
+    conn = DB_Connector(dbfile)
+    newRows = conn.Execute("SELECT * FROM sampleSheet WHERE TIMESTAMPADD(SECOND,361,time) > NOW()")
+
+    if len(newRows) == 0 :
+        sys.exit(0)
+
+    samplesheet = SampleSheet(newRows)
 
 
 if __name__ == '__main__':
-    main(sys.argv[:])
+
+    if len(sys.argv) != 2:
+        print(Usage.__doc__)
+        sys.exit(2)
+
+    main(*sys.argv)
