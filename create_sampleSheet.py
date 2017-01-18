@@ -33,10 +33,9 @@ def main(name, dbfile):
         sys.exit(2)
 
     conn = DB_Connector(dbfile)
-    newRows = conn.Execute("SELECT * FROM sampleSheet WHERE TIMESTAMPADD(SECOND,7210,time) > NOW()")
+    newRows = conn.Execute("SELECT * FROM sampleSheet WHERE TIMESTAMPADD(SECOND,9210,time) > NOW()")
 
     if len(newRows) == 0 :
-        print("none")
         sys.exit(0)
 
     samplesheet = SampleSheet(newRows, conn)

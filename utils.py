@@ -101,7 +101,12 @@ class SampleSheet():
 
     def hiseq2500(self, rows):
         print("hiseq2500")
-        print(rows)
+        self.samplesheetstring = self.hiseq_samplesheet
+        for row in rows:
+            for lane in row['lane'].split(r','):
+                self.samplesheetstring += '%s,%s,%s,b37,Index,%s-%s,,N,R1,%s,%s-%s\n' % (row['flowcell_ID'], lane, row['sampleID'], row['capture_kit'], row['sample_type'], row['ran_by'], row['machine'], row['flowcell_ID'] )
+
+        print(self.samplesheetstring)
 
     def nextseq500(self, rows):
         pass
