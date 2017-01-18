@@ -22,28 +22,6 @@ class Usage:
 
     """
 
-class SampleSheet():
-    """ An object for samplesheet issues """
-
-    def __init__(self, rows, conn):
-        self.conn = conn
-        self.byflowcell = dict()
-        self.hiseq_samplesheet = "FCID,Lane,SampleID,SampleRef,Index,Description,Control,Recipe,Operator,SampleProject\n"
-        self.bcltools_samplesheet = '[Header]\nIEMFileVersion,4\nDate,{1}\nWorkflow,GenerateFASTQ\nApplication,{2} FASTQ Only\nAssay,TruSeq HT\nDescription,\nChemistry,Default\n\n[Reads]\n{3}\n{4}\n\n[Settings]\nAdapter,AGATCGGAAGAGCACACGTCTGAACTCCAGTCA\nAdapterRead2,AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT\n\n[Data]\n'
-        self.list2dict(rows)
-    
-    def list2dict(self, rows):
-        for row in rows:
-            if not row['flowcell_ID'] in self.byflowcell:
-                self.byflowcell[row['flowcell_ID']] = list()
-                self.byflowcell[row['flowcell_ID']].append(row)
-
-            else:
-                self.byflowcell[row['flowcell_ID']].append(row)
-
-    def hiseq_samplesheet(self):
-        self.hiseq_samplesheet.append("abc")
-
 
 def main(name, dbfile):
 
@@ -55,13 +33,17 @@ def main(name, dbfile):
         sys.exit(2)
 
     conn = DB_Connector(dbfile)
-    newRows = conn.Execute("SELECT * FROM sampleSheet WHERE TIMESTAMPADD(SECOND,361,time) > NOW()")
+    newRows = conn.Execute("SELECT * FROM sampleSheet WHERE TIMESTAMPADD(SECOND,7210,time) > NOW()")
 
     if len(newRows) == 0 :
+        print("none")
         sys.exit(0)
 
-    samplesheet = SampleSheet(newRows)
-
+    samplesheet = SampleSheet(newRows, conn)
+    testtime = TimeString()
+    testtime.print_timestamp()
+    config = GlobalConfig(conn)
+    samplesheet.seq_samplesheet()
 
 if __name__ == '__main__':
 
