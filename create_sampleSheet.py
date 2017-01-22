@@ -33,15 +33,15 @@ def main(name, dbfile):
         sys.exit(2)
 
     conn = DB_Connector(dbfile)
-    newRows = conn.Execute("SELECT * FROM sampleSheet WHERE TIMESTAMPADD(SECOND,9210,time) > NOW()")
+    newRows = conn.Execute("SELECT * FROM sampleSheet WHERE TIMESTAMPADD(SECOND,13339210,time) > NOW()")
 
     if len(newRows) == 0 :
         sys.exit(0)
 
-    samplesheet = SampleSheet(newRows, conn)
-    testtime = TimeString()
-    testtime.print_timestamp()
-    config = GlobalConfig(conn)
+    time_obj = TimeString()
+    time_obj.print_timestamp()
+
+    samplesheet = SampleSheet(newRows, conn, time_obj)
     samplesheet.seq_samplesheet()
 
 if __name__ == '__main__':
