@@ -18,6 +18,32 @@ def SendEmail(Subject, Receiptors, Content):
     s.send_message(msg)
     s.quit()
 
+def croncontrolpanel(conn, column, status=None):
+    pass
+
+class CronControlPanel():
+    """a object of CronControlPanel, do all functions on table cronControlPanel"""
+    def __init__(self, conn):
+        self.conn = conn
+
+    def start_process(self, column):
+        status = self.conn.Execute("SELECT %s FROM cronControlPanel" % (column))
+        if status[0][column] == 1:
+            SendEmail("%s is still running..." % (column), "weiw.wang@sickkids.ca", "abort...")
+            sys.exit(0)
+        else :
+            self.conn.Execute("UPDATE cronControlPanel SET %s = '1'" % (column))
+
+    def stop_process(self, column):
+        self.conn.Execute("UPDATE cronControlPanel SET %s = '0'" % (column))
+
+    def update_rf(self, folder):
+        self.conn.Execute("UPDATE cronControlPanel SET  sequencer_RF = '%s'" % (folder))
+
+    def get_rf(self ):
+        status = self.conn.Execute("SELECT sequencer_RF FROM cronControlPanel")
+        return(status[0]['sequencer_RF'])
+
 class TimeString():
     """ generate a string of the date/time"""
 
