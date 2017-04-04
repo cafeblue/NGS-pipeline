@@ -7,6 +7,7 @@ import pymysql.cursors
 import smtplib
 from datetime import datetime, date, time
 from email.mime.text import MIMEText
+from pathlib import Path
 
 def SendEmail(Subject, Receiptors, Content):
     msg= MIMEText(Content)
@@ -20,6 +21,17 @@ def SendEmail(Subject, Receiptors, Content):
 
 def croncontrolpanel(conn, column, status=None):
     pass
+
+def getActiveRunFolders(conn):
+    activeSeq = ""
+    for tempdict in conn.Execute("SELECT runFolder from sequencers where active = '1'"):
+        activeSeq += tempdict['runFolder'] + " "
+    return activeSeq
+    #activeSeq = []
+    #for tempdict in conn.Execute("SELECT runFolder from sequencers where active = '1'"):
+    #    templist = tempdict['runFolder'].split(r" ")
+    #    activeSeq += templist
+    #return activeSeq
 
 class CronControlPanel():
     """a object of CronControlPanel, do all functions on table cronControlPanel"""

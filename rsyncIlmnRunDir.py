@@ -24,12 +24,12 @@ def rsync_folder(conn):
         timestamp = TimeString()
         timestamp.print_timestamp()
         for row in runningfolder :
-            command = "rsync -Lav --progress --stats %s/ %s 1>/dev/null" % (row['runnndir'], row['destinationDir'])
-            print(command)
-            try :
-                subprocess.check_call(command, shell=True)
-            except CalledProcessError:
-                SendEmail("Failed to rsync runfolder for flowcell %s" % (row['flowcellID']), "weiw.wang@sickkids.ca", "As Title.")
+            #command = "rsync -Lav --progress --stats %s/ %s 1>/dev/null" % (row['runnndir'], row['destinationDir'])
+            command = "rsync -Lav --progress --stats -e 'ssh -i /home/wei.wang/.ssh/id_sra_thing1' %s/ %s" % (row['rundir'], row['destinationDir'])
+            try:
+                subprocess.run(command, shell=True, check=True)
+            except subprocess.CalledProcessError as grepexc: 
+                SendEmail("rsync failed for flowcellID: " + row['flowcellID'], "weiw.wang@sickkids.ca", "Please check the following command:\n\n" + command + "\n\n" + "error code" + str(grepexc.returncode) + "\n\n" + str(grepexc.output))
 
 def check_failed_flowcell(conn):
     runningfolder = conn.Execute("SELECT flowcellID,machine FROM thing1JobStatus WHERE sequencing = '2' AND TIMESTAMPADD(HOUR,36,time)<CURRENT_TIMESTAMP")
