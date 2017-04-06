@@ -100,6 +100,23 @@ class DB_Connector():
                 self.alldict[row[keyword]] = [row]
         return self.alldict
 
+def getRunInfo(folder):
+    runinfo = { 'LaneCount': 0, 'SurfaceCount': 0, 'SwathCount': 0, 'TileCount': 0, 'SectionPerLane': 0, 'LanePerSection': 0 }
+    if Path(folder).is_file():
+        command = 'grep "NumCycles=" ' + folder
+        numcycles = subprocess.run(command, stdout=subprocess.PIPE, shell=True).stdout.decode("utf-8")
+        if numcycles.count('NumCycles="') == 3 :
+            cycNum1, indexCycNum, cycNum2 = re.findall('(?<=NumCycles=")\d+', numcycles)
+            runinfo['NumCycles'] = [int(cycNum1), int(indexCycNum), int(cycNum2)]
+
+        command = 'grep "<FlowcellLayout" ' + folder
+        for items in  subprocess.run(command, stdout=subprocess.PIPE, shell=True).stdout.decode("utf-8").split(' '):
+            if re.match('\w+="\d+"', items) :
+                flowcellLayout, num = items.split('=')
+                num = int(re.sub(r'"', r'', num))
+                runinfo[flowcellLayout] = num
+    return runinfo
+
 class ilmnBarCode():
     def __init__(self, conn):
         self.barcodes = conn.Execute("SELECT code,value FROM encoding WHERE tablename = 'sampleSheet' AND fieldname = 'barcode'")

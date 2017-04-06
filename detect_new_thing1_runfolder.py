@@ -31,28 +31,11 @@ def passInfo(folder, config, conn):
     else:
         SendEmail(flowcellID + " Error", "weiw.wang@sickkids.ca", "Failed to check the cyclenumbers or cycle number equal to 0?")
 
-def getRunInfo(folder):
-    runinfo = { 'LaneCount': 0, 'SurfaceCount': 0, 'SwathCount': 0, 'TileCount': 0, 'SectionPerLane': 0, 'LanePerSection': 0 }
-    if Path(folder).is_file():
-        command = 'grep "NumCycles=" ' + folder
-        numcycles = subprocess.run(command, stdout=subprocess.PIPE, shell=True).stdout.decode("utf-8")
-        if numcycles.count('NumCycles="') == 3 :
-            cycNum1, indexCycNum, cycNum2 = re.findall('(?<=NumCycles=")\d+', numcycles)
-            runinfo['NumCycles'] = int(cycNum1) + int(indexCycNum) + int(cycNum2)
-
-        command = 'grep "<FlowcellLayout" ' + folder
-        for items in  subprocess.run(command, stdout=subprocess.PIPE, shell=True).stdout.decode("utf-8").split(' '):
-            if re.match('\w+="\d+"', items) :
-                flowcellLayout, num = items.split('=')
-                num = int(re.sub(r'"', r'', num))
-                runinfo[flowcellLayout] = num
-    return runinfo
-
 def UpdateDatabase(conn, flowcellID, machine, folder, destfolder, runinfo):
     if len(conn.Execute("SELECT * from thing1JobStatus where flowcellID = '" + flowcellID + "'")) > 0:
         return flowcellID + " already exists in the table thing1JobStatus, please check if there are two or more running folders of this flowcell on the sequencer.\n"
     else:
-        conn.Execute("INSERT INTO thing1JobStatus ( flowcellID, machine, rundir, destinationDir, sequencing, cycleNum, LaneCount, SurfaceCount, SwathCount, TileCount, SectionPerLane, LanePerSection ) VALUES ('%s', '%s', '%s', '%s', '2', '%s', '%s', '%s', '%s', '%s', '%s', '%s')" % (flowcellID, machine, folder, destfolder, str(runinfo['NumCycles']), str(runinfo['LaneCount']), str(runinfo['SurfaceCount']), str(runinfo['SwathCount']), str(runinfo['TileCount']), str(runinfo['SectionPerLane']), str(runinfo['LanePerSection'])))
+        conn.Execute("INSERT INTO thing1JobStatus ( flowcellID, machine, rundir, destinationDir, sequencing, cycleNum, LaneCount, SurfaceCount, SwathCount, TileCount, SectionPerLane, LanePerSection ) VALUES ('%s', '%s', '%s', '%s', '2', '%s', '%s', '%s', '%s', '%s', '%s', '%s')" % (flowcellID, machine, folder, destfolder, str(runinfo['NumCycles'][0] + runinfo['NumCycles'][1] + runinfo['NumCycles'][2]), str(runinfo['LaneCount']), str(runinfo['SurfaceCount']), str(runinfo['SwathCount']), str(runinfo['TileCount']), str(runinfo['SectionPerLane']), str(runinfo['LanePerSection'])))
         return "As Subject"
 
 def main(name, dbfile):
