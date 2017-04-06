@@ -5,6 +5,7 @@ import re
 import pickle
 import pymysql.cursors
 import smtplib
+import subprocess
 from datetime import datetime, date, time
 from email.mime.text import MIMEText
 from pathlib import Path
