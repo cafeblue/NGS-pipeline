@@ -11,7 +11,6 @@ from utils.dbtools import DB_Connector
 from utils.common import TimeString
 from utils.sequencers import SampleSheet
 
-
 class Usage:
     """
 
@@ -33,7 +32,7 @@ def main(name, dbfile):
         sys.exit(2)
 
     conn = DB_Connector(dbfile)
-    newRows = conn.Execute("SELECT * FROM sampleSheet WHERE TIMESTAMPADD(SECOND,13339210,time) > NOW()")
+    newRows = conn.Execute("SELECT * FROM sampleSheet WHERE TIMESTAMPADD(SECOND,60,time) > NOW()")
 
     if len(newRows) == 0 :
         sys.exit(0)

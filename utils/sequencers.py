@@ -2,6 +2,7 @@
 import re
 import subprocess
 from pathlib import Path
+from utils.config import GlobalConfig
 
 def getRunInfo(folder):
     runinfo = { 'LaneCount': 0, 'SurfaceCount': 0, 'SwathCount': 0, 'TileCount': 0, 'SectionPerLane': 0, 'LanePerSection': 0 }
@@ -19,6 +20,14 @@ def getRunInfo(folder):
                 num = int(re.sub(r'"', r'', num))
                 runinfo[flowcellLayout] = num
     return runinfo
+
+class Sequencers():
+    """Read in all the config of Sequencers"""
+    def __init__(self, conn):
+        self.active_seq = conn.Execute("SELECT * FROM sequencers WHERE active = '1'")
+        for row in self.active_seq:
+            setattr(self, row['machine'], row)
+
 
 class ilmnBarCode():
     def __init__(self, conn):

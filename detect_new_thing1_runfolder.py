@@ -3,12 +3,14 @@
 This script is to find the latest runfolders on the sequencers and create a new row in table thing1JobStatus for each flowcellID.
 """
 import sys
-import os
 import re
-import pickle
 from pathlib import Path
 import subprocess 
-from utils import *
+from utils.dbtools import DB_Connector, CronControlPanel, getActiveRunFolders
+from utils.sequencers import getRunInfo
+from utils.common import TimeString
+from utils.config import GlobalConfig
+from utils.SendEmail import SendEmail
 
 class Usage:
     """
