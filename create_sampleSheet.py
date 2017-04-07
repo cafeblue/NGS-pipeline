@@ -6,10 +6,10 @@
 
 
 import sys
-import os
-import pickle
 from pathlib import Path
-from utils import *
+from utils.dbtools import DB_Connector
+from utils.common import TimeString
+from utils.sequencers import SampleSheet
 
 
 class Usage:
