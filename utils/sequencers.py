@@ -73,15 +73,14 @@ class SampleSheet(Sequencers, ilmnBarCode, GlobalConfig):
             f = open( self.sequencer['sampleSheetFolder'] + "/%s_%s_samplesheet.csv" % (self.time.longdate, fc), 'w')
             f.write(self.samplesheetstring)
 
-    def demultiplex_samplesheet(self, flowcellid = None):
-        print("4demultiplexing")
-        self.list2dict(self.conn.Execute("SELECT * FROM sampleSheet WHERE flowcell_ID = '%s'" % (flowcellid)))
-
-        self.samplesheet = getattr(self, re.sub(r'_.*', "", getattr(self, flowcellid)))
-        self.samplesheet(rows)
-
-
-
+    def demultiplex_samplesheet(self):
+        for fc,rows in self.byflowcell.items():
+            self.samplesheet = getattr(self, re.sub(r'_.*', "", getattr(self, fc)))
+            self.samplesheet(rows)
+            
+            self.sampleSheetFile = getattr(self.globalconfig, "SAMPLE_SHEET") + "/%s_%s_%s_samplesheet.csv" % (re.sub(r'_.*', "", getattr(self, fc)),  fc, self.time.longdate)
+            f = open( self.samplesheetFile, 'w')
+            f.write(self.samplesheetstring)
 
     def hiseq2500(self, rows, cycle=None):
         if cycle is None:

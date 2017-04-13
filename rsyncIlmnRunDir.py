@@ -3,11 +3,12 @@
 This script is to rsync the running folder from the sequencer to thing1
 """
 import sys
-import os
-import pickle
+import re
 from pathlib import Path
 import subprocess 
-from utils import *
+from utils.dbtools import DB_Connector, CronControlPanel
+from utils.common import TimeString
+from utils.SendEmail import SendEmail
 
 class Usage:
     """
@@ -25,7 +26,7 @@ def rsync_folder(conn):
         timestamp.print_timestamp()
         for row in runningfolder :
             #command = "rsync -Lav --progress --stats %s/ %s 1>/dev/null" % (row['runnndir'], row['destinationDir'])
-            command = "rsync -Lav --progress --stats -e 'ssh -i /home/wei.wang/.ssh/id_sra_thing1' %s/ %s" % (row['rundir'], row['destinationDir'])
+            command = "rsync -La --stats -e 'ssh -i /home/wei.wang/.ssh/id_sra_thing1' %s/ %s" % (row['rundir'], row['destinationDir'])
             try:
                 subprocess.run(command, shell=True, check=True)
             except subprocess.CalledProcessError as grepexc: 

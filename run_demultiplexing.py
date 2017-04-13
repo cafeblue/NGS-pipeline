@@ -11,6 +11,9 @@ from pathlib import Path
 import subprocess
 from utils import *
 
+from interop import py_interop_run_metrics, py_interop_run, py_interop_summary
+
+
 class Usage:
     """
         Find the finished runfolders on the sequencers and run demultiplexing.
@@ -130,8 +133,26 @@ def main(name, dbfile):
 
     timestamp = TimeString()
     timestamp.print_timestamp()
-    for fs in finishedSeqs:
-        print(fs)
+    for runningSeq in finishedSeqs:
+        ssRows = conn.Execute("SELECT * FROM sampleSheet WHERE flowcell_ID = '%s'" % (runningSeq['flowcellID'])) 
+        samplesheet = SampleSheet(ssRows, conn, timestamp)
+        samplesheet.demultiplex_samplesheet()
+        command = "bcl2fastq -R %s -o $outputfastqDir --sample-sheet %s" % (runningSeq['destinationDir'], getattr(config, "FASTQ_FOLDER") , samplesheet.samplSheetFile)
+        jobID = jsub("demultiplex", command, "540000", "32", '1', "01:00:00", "30", '', "bcl2fastq/2.19.0")
+
+        ###  interOp
+        run_folder = runningSeq['destinationDir']
+        run_metrics = py_interop_run_metrics.run_metrics()
+        valid_to_load = py_interop_run.uchar_vector(py_interop_run.MetricCount, 0)
+        run_folder = run_metrics.read(run_folder, valid_to_load)
+        summary = py_interop_summary.run_summary()
+        py_interop_summary.summarize_run_metrics(run_metrics, summary)
+        rows = [("Read %s%d"%("(I)" if summary.at(i).read().is_index()  else " ", summary.at(i).read().number()), summary.at(i).summary()) for i in xrange(summary.size())]
+        d = []
+        for label, func in columns:
+            d.append( (label, pd.Series([getattr(r[1], func)() for r in rows], index=[r[0] for r in rows])))
+        df = pd.DataFrame.from_items(d)
+        df
 
 if __name__ == '__main__':
 
