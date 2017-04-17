@@ -2,17 +2,19 @@
 """
 This script is to find the finished runfolders on the sequencers and run demultiplexing.
 """
+
 import sys
-import datetime
 import os
 import re
-import pickle
 from pathlib import Path
-import subprocess
-from utils import *
-
+from utils.dbtools import DB_Connector 
+from utils.sequencers import getRunInfo, SampleSheet
+from utils.common import TimeString
+from utils.config import GlobalConfig
+from utils.SendEmail import SendEmail
+from utils.jsub import jsub
 from interop import py_interop_run_metrics, py_interop_run, py_interop_summary
-
+from datetime import datetime, date, time
 
 class Usage:
     """
@@ -42,78 +44,33 @@ def check_status(runningSeq, config):
     if Path(runningSeq['destinationDir'] + eval(getattr(config, "LAST_BCL_" + re.sub(r'_.{1,2}$', '', runningSeq['machine'])))).is_file():
         completeFile = runningSeq['destinationDir'] + getattr(config, "COMPLETE_FILE_" + re.sub(r'_.{1,2}$', '', runningSeq['machine']))
         if Path(completeFile).is_file() :
-            if (datetime.datetime.now() - datetime.datetime.fromtimestamp(os.path.getmtime(completeFile))).seconds > 600:
+            if (datetime.now() - datetime.fromtimestamp(os.path.getmtime(completeFile))).seconds > 600:
                 return 1
     return 2
 
-def create_sample_sheet():
-'''
-sub create_sample_sheet {
-  my ($machine, $flowcellID, $cycle1, $cycle2) = @_;
-  my $machineType = $machine;
-  $machineType =~ s/_.+//;
-  my $errlog = "";
-  my @old_samplesheet = ();
+def parseInterOp(conn, run_folder, flowcellID):
+    run_metrics = py_interop_run_metrics.run_metrics()
+    run_folder = run_metrics.read(run_folder)
+    summary = py_interop_summary.run_summary()
+    py_interop_summary.summarize_run_metrics(run_metrics, summary)
 
-  my $filename = "$config->{'SAMPLE_SHEET'}$machine\_$flowcellID.csv";
-  if ( -e "$filename" ) {
-    $errlog .= "samplesheet already exists: $filename\n";
-    @old_samplesheet = `tail -n +2  $filename`;
-  }
+    readsClusterDensity = ",".join(str(int(round(summary.at(0).at(i).density().mean()/1000.0))) + "+/-" + str(int(round(summary.at(0).at(i).density().stddev()/1000.0))) for i in range(summary.lane_count()))
+    perReadsPassingFilter = ",".join(str(round(summary.at(0).at(i).reads_pf()/1000000.0, 2)) for i in range(summary.lane_count()))
+    perQ30Score = ",".join(str(round(summary.at(0).at(i).percent_gt_q30(), 2)) for i in range(summary.lane_count()))
+    numTotalReads = ",".join(str(round(summary.at(0).at(i).reads()/1000000.0, 2)) for i in range(summary.lane_count()))
+    aligned = ",".join(str(round(summary.at(0).at(i).percent_aligned().mean(), 2)) + "+/-" + str(round(summary.at(0).at(i).percent_aligned().stddev(), 2)) for i in range(summary.lane_count()))
+    errorRate = ",".join(str(round(summary.at(0).at(i).error_rate().mean(), 2)) + "+/-" + str(round(summary.at(0).at(i).error_rate().stddev(), 2)) for i in range(summary.lane_count()))
+    clusterPF = ",".join(str(round(summary.at(0).at(i).percent_pf().mean(), 2)) + "+/-" + str(round(summary.at(0).at(i).percent_pf().stddev(), 2)) for i in range(summary.lane_count())) 
 
-  my $csvlines = "";
-  my $db_query = "SELECT sampleID,barcode,lane,barcode2 from sampleSheet where flowcell_ID = \'$flowcellID\'" ;
-  my $sthQNS = $dbh->prepare($db_query) or die "Can't query database for new samples: ". $dbh->errstr() . "\n";
-  $sthQNS->execute() or die "Can't execute query for new samples: " . $dbh->errstr() . "\n";
-  if ($sthQNS->rows() != 0) { #no samples are being currently sequenced
-    $csvlines .= eval($config->{"SAMPLESHEET_HEADER_$machineType"}); 
-    if ($config->{"SAMPLESHEET_HEADER_$machineType"} =~ /Lane/) {
-      while (my @data_line = $sthQNS->fetchrow_array()) {
-        foreach my $lane (split(/,/, $data_line[2])) {
-          $csvlines .= eval($config->{"SAMPLESHEET_LINE_$machineType"}); 
-        }
-      }
-    }
-    else {
-      while (my @data_line = $sthQNS->fetchrow_array()) {
-        $csvlines .= eval($config->{"SAMPLESHEET_LINE_$machineType"}); 
-      }
-    }
-  } else {
-    Common::email_error($config->{"EMAIL_SUBJECT_PREFIX"}, $config->{"EMAIL_CONTENT_PREFIX"}, "$machine $flowcellID demultiplex status","No sampleID could be found for $flowcellID in the database, table sampleSheet", $machine, $today, $flowcellID, $config->{'EMAIL_WARNINGS'});
-    croak "no sample could be found for $flowcellID \n";
-  }
-
-  my $check_ident = 0;
-  if ($#old_samplesheet > -1) {
-    my %test;
-    foreach (@old_samplesheet) {
-      chomp;
-      $test{$_} = 0;
-    }
-    foreach (split(/\n/,$csvlines)) {
-      if (not exists $test{$_}) {
-        $errlog .= "line\n$_\ncan't be found in the old samplesheet!\n";
-        $check_ident = 1;
-      }
-    }
-  }
-
-  if ($check_ident == 1) {
-    Common::email_error($config->{"EMAIL_SUBJECT_PREFIX"}, $config->{"EMAIL_CONTENT_PREFIX"}, "$machine $flowcellID demultiplex status",$errlog, $machine, $today, $flowcellID, $config->{'EMAIL_WARNINGS'});
-    croak $errlog;
-  } elsif ($check_ident == 0 && $errlog ne '') {
-    Common::email_error($config->{"EMAIL_SUBJECT_PREFIX"}, $config->{"EMAIL_CONTENT_PREFIX"}, "$machine $flowcellID demultiplex status",$errlog, $machine, $today, $flowcellID, $config->{'EMAIL_WARNINGS'});
-    return $filename;
-  }
-
-  open (CSV, ">$filename") or die "failed to open file $filename";
-  print CSV eval($config->{'SEQ_SAMPLESHEET_INFO'}),"\n"; 
-  print CSV $csvlines;
-  return $filename;
-}
-'''
-
+    readsClusterDensity += "," + ",".join(str(int(round(summary.at(2).at(i).density().mean()/1000.0))) + "+/-" + str(int(round(summary.at(2).at(i).density().stddev()/1000.0))) for i in range(summary.lane_count()))
+    perReadsPassingFilter += "," + ",".join(str(round(summary.at(2).at(i).reads_pf()/1000000.0, 2)) for i in range(summary.lane_count()))
+    perQ30Score += "," + ",".join(str(round(summary.at(2).at(i).percent_gt_q30(), 2)) for i in range(summary.lane_count()))
+    numTotalReads += "," + ",".join(str(round(summary.at(2).at(i).reads()/1000000.0, 2)) for i in range(summary.lane_count()))
+    aligned += "," + ",".join(str(round(summary.at(2).at(i).percent_aligned().mean(), 2)) + "+/-" + str(round(summary.at(2).at(i).percent_aligned().stddev(), 2)) for i in range(summary.lane_count()))
+    errorRate += "," + ",".join(str(round(summary.at(2).at(i).error_rate().mean(), 2)) + "+/-" + str(round(summary.at(2).at(i).error_rate().stddev(), 2)) for i in range(summary.lane_count()))
+    clusterPF += "," + ",".join(str(round(summary.at(2).at(i).percent_pf().mean(), 2)) + "+/-" + str(round(summary.at(2).at(i).percent_pf().stddev(), 2)) for i in range(summary.lane_count())) 
+ 
+    conn.Execute("UPDATE thing1JobStatus SET `readsClusterDensity` = '%s', clusterPF = '%s', `numTotalReads` = '%s', `perReadsPassingFilter` = '%s', `perQ30Score` = '%s', aligned = '%s', `ErrorRate` = '%s' WHERE flowcellID = '%s'" % (readsClusterDensity, clusterPF, numTotalReads, perReadsPassingFilter, perQ30Score, aligned, errorRate, flowcellID))
 
 def main(name, dbfile):
 
@@ -126,8 +83,6 @@ def main(name, dbfile):
 
     conn = DB_Connector(dbfile)
     config = GlobalConfig(conn)
-    cron_control = CronControlPanel(conn)
-    ilmnbarcode = ilmnBarCode(conn)
 
     finishedSeqs = getSequencingList(config, conn)
 
@@ -137,22 +92,19 @@ def main(name, dbfile):
         ssRows = conn.Execute("SELECT * FROM sampleSheet WHERE flowcell_ID = '%s'" % (runningSeq['flowcellID'])) 
         samplesheet = SampleSheet(ssRows, conn, timestamp)
         samplesheet.demultiplex_samplesheet()
-        command = "bcl2fastq -R %s -o $outputfastqDir --sample-sheet %s" % (runningSeq['destinationDir'], getattr(config, "FASTQ_FOLDER") , samplesheet.samplSheetFile)
-        jobID = jsub("demultiplex", command, "540000", "32", '1', "01:00:00", "30", '', "bcl2fastq/2.19.0")
 
-        ###  interOp
-        run_folder = runningSeq['destinationDir']
-        run_metrics = py_interop_run_metrics.run_metrics()
-        valid_to_load = py_interop_run.uchar_vector(py_interop_run.MetricCount, 0)
-        run_folder = run_metrics.read(run_folder, valid_to_load)
-        summary = py_interop_summary.run_summary()
-        py_interop_summary.summarize_run_metrics(run_metrics, summary)
-        rows = [("Read %s%d"%("(I)" if summary.at(i).read().is_index()  else " ", summary.at(i).read().number()), summary.at(i).summary()) for i in xrange(summary.size())]
-        d = []
-        for label, func in columns:
-            d.append( (label, pd.Series([getattr(r[1], func)() for r in rows], index=[r[0] for r in rows])))
-        df = pd.DataFrame.from_items(d)
-        df
+        realCycleNum = sum(getRunInfo(runningSeq['destinationDir'] + "/" + getattr(config, 'SEQ_RUN_INFO_FILE'))['NumCycles'])
+        if realCycleNum != int(runningSeq['cycleNum']) :
+            conn.Execute("UPDATE thing1JobStatus SET sequencing = '0' where flowcellID = '%s'" % (runningSeq['flowcellID']))
+            SendEmail( "%s on %s failed!!" % (runningSeq['flowcellID'], runningSeq['machine']), "weiw.wang@sickkids.ca", "%s failed. The final cycle number, %d does not equal to the initialed cycle number %s \n" % (runningSeq['runDir'], realCycleNum, runningSeq['cycleNum']))
+        else:
+            jsubLogFolder = getattr(config, 'JSUB_LOG_FOLDER') + "demultiplex_" + runningSeq['machine'] + '_' + runningSeq['flowcellID'] + "_" + timestamp.fulltime 
+            command = "bcl2fastq -R %s -o %s --sample-sheet %s" % (runningSeq['destinationDir'], getattr(config, "FASTQ_FOLDER") + runningSeq['machine'] + "_" + runningSeq['flowcellID'], samplesheet.sampleSheetFile)
+            jobID = jsub( "demultiplex_" + runningSeq['machine'] + '_' + runningSeq['flowcellID'] + "_" + timestamp.fulltime, getattr(config, 'JSUB_LOG_FOLDER'),  command, "22000", "12", "01:00:00", "30", "bcl2fastq/2.19.0", '', '1')
+            conn.Execute("UPDATE thing1JobStatus SET sequencing = '1', demultiplexJobID = '%s' , demultiplex = '2' , seqFolderChksum = '2', demultiplexJfolder = '%s' where flowcellID = '%s'" % (jobID, jsubLogFolder, runningSeq['flowcellID']))
+            SendEmail( "status of %s on %s" % (runningSeq['flowcellID'], runningSeq['machine']), "weiw.wang@sickkids.ca", "Sequencing finished successfully, demultiplexing is starting...\n")
+            ###  interOp
+            parseInterOp(conn, runningSeq['destinationDir'], runningSeq['flowcellID'])
 
 if __name__ == '__main__':
 

@@ -1,14 +1,14 @@
 #! /bin/env python3
 '''
    a simple python wrapper for jsub.
-   parameters: jobname, command, memory size, #cores, #nodes, walltime, swap disk size, dependances, modules to be loaded
+   parameters: jobname, basefolder, command, memory size, #cores, walltime, swap disk space, modules, depend, #nodes to be loaded
 '''
 import re
 import subprocess
 from pathlib import Path
 from utils.config import GlobalConfig
 
-def jsub(jobname, command, mem, cpus, nodes='1', wt, ng, depend='', modules):
+def jsub(jobname, basefolder, command, mem, cpus, wt, ng, modules, depend='', nodes='1'):
     jcmd = "echo 'export TMPDIR=/localhd/`echo $PBS_JOBID | cut -d. -f1 ` && \\\n"
     jcmd += "\\\n module load %s  &&  \\\n" % (modules)
     jcmd += "\\\n"

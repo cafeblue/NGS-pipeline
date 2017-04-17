@@ -79,7 +79,7 @@ class SampleSheet(Sequencers, ilmnBarCode, GlobalConfig):
             self.samplesheet(rows)
             
             self.sampleSheetFile = getattr(self.globalconfig, "SAMPLE_SHEET") + "/%s_%s_%s_samplesheet.csv" % (re.sub(r'_.*', "", getattr(self, fc)),  fc, self.time.longdate)
-            f = open( self.samplesheetFile, 'w')
+            f = open( self.sampleSheetFile, 'w')
             f.write(self.samplesheetstring)
 
     def hiseq2500(self, rows, cycle=None):
