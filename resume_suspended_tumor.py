@@ -6,7 +6,8 @@ import sys
 import os
 import re
 from pathlib import Path
-from utils import *
+from utils.dbtools import DB_Connector 
+from utils.SendEmail import SendEmail
 
 class Usage:
     """ 

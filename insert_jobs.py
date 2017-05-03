@@ -8,7 +8,7 @@ import sys
 import pickle
 from pathlib import Path
 import subprocess 
-from utils import *
+from utils.dbtools import DB_Connector 
 
 class Usage:
     """

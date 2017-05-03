@@ -6,6 +6,7 @@ This script is to find the finished runfolders on the sequencers and run demulti
 import sys
 import os
 import re
+import parseInterOp
 from pathlib import Path
 from utils.dbtools import DB_Connector 
 from utils.sequencers import getRunInfo, SampleSheet
@@ -47,30 +48,6 @@ def check_status(runningSeq, config):
             if (datetime.now() - datetime.fromtimestamp(os.path.getmtime(completeFile))).seconds > 600:
                 return 1
     return 2
-
-def parseInterOp(conn, run_folder, flowcellID):
-    run_metrics = py_interop_run_metrics.run_metrics()
-    run_folder = run_metrics.read(run_folder)
-    summary = py_interop_summary.run_summary()
-    py_interop_summary.summarize_run_metrics(run_metrics, summary)
-
-    readsClusterDensity = ",".join(str(int(round(summary.at(0).at(i).density().mean()/1000.0))) + "+/-" + str(int(round(summary.at(0).at(i).density().stddev()/1000.0))) for i in range(summary.lane_count()))
-    perReadsPassingFilter = ",".join(str(round(summary.at(0).at(i).reads_pf()/1000000.0, 2)) for i in range(summary.lane_count()))
-    perQ30Score = ",".join(str(round(summary.at(0).at(i).percent_gt_q30(), 2)) for i in range(summary.lane_count()))
-    numTotalReads = ",".join(str(round(summary.at(0).at(i).reads()/1000000.0, 2)) for i in range(summary.lane_count()))
-    aligned = ",".join(str(round(summary.at(0).at(i).percent_aligned().mean(), 2)) + "+/-" + str(round(summary.at(0).at(i).percent_aligned().stddev(), 2)) for i in range(summary.lane_count()))
-    errorRate = ",".join(str(round(summary.at(0).at(i).error_rate().mean(), 2)) + "+/-" + str(round(summary.at(0).at(i).error_rate().stddev(), 2)) for i in range(summary.lane_count()))
-    clusterPF = ",".join(str(round(summary.at(0).at(i).percent_pf().mean(), 2)) + "+/-" + str(round(summary.at(0).at(i).percent_pf().stddev(), 2)) for i in range(summary.lane_count())) 
-
-    readsClusterDensity += "," + ",".join(str(int(round(summary.at(2).at(i).density().mean()/1000.0))) + "+/-" + str(int(round(summary.at(2).at(i).density().stddev()/1000.0))) for i in range(summary.lane_count()))
-    perReadsPassingFilter += "," + ",".join(str(round(summary.at(2).at(i).reads_pf()/1000000.0, 2)) for i in range(summary.lane_count()))
-    perQ30Score += "," + ",".join(str(round(summary.at(2).at(i).percent_gt_q30(), 2)) for i in range(summary.lane_count()))
-    numTotalReads += "," + ",".join(str(round(summary.at(2).at(i).reads()/1000000.0, 2)) for i in range(summary.lane_count()))
-    aligned += "," + ",".join(str(round(summary.at(2).at(i).percent_aligned().mean(), 2)) + "+/-" + str(round(summary.at(2).at(i).percent_aligned().stddev(), 2)) for i in range(summary.lane_count()))
-    errorRate += "," + ",".join(str(round(summary.at(2).at(i).error_rate().mean(), 2)) + "+/-" + str(round(summary.at(2).at(i).error_rate().stddev(), 2)) for i in range(summary.lane_count()))
-    clusterPF += "," + ",".join(str(round(summary.at(2).at(i).percent_pf().mean(), 2)) + "+/-" + str(round(summary.at(2).at(i).percent_pf().stddev(), 2)) for i in range(summary.lane_count())) 
- 
-    conn.Execute("UPDATE thing1JobStatus SET `readsClusterDensity` = '%s', clusterPF = '%s', `numTotalReads` = '%s', `perReadsPassingFilter` = '%s', `perQ30Score` = '%s', aligned = '%s', `ErrorRate` = '%s' WHERE flowcellID = '%s'" % (readsClusterDensity, clusterPF, numTotalReads, perReadsPassingFilter, perQ30Score, aligned, errorRate, flowcellID))
 
 def main(name, dbfile):
 
