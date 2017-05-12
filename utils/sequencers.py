@@ -4,7 +4,7 @@ import subprocess
 from pathlib import Path
 from utils.config import GlobalConfig
 
-def getRunInfo(folder):
+def parseRunInfo(folder):
     runinfo = { 'LaneCount': 0, 'SurfaceCount': 0, 'SwathCount': 0, 'TileCount': 0, 'SectionPerLane': 0, 'LanePerSection': 0 }
     if Path(folder).is_file():
         command = 'grep "NumCycles=" ' + folder

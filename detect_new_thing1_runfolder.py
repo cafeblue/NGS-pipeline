@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 import subprocess 
 from utils.dbtools import DB_Connector, CronControlPanel, getActiveRunFolders
-from utils.sequencers import getRunInfo
+from utils.sequencers import parseRunInfo
 from utils.common import TimeString
 from utils.config import GlobalConfig
 from utils.SendEmail import SendEmail
@@ -21,8 +21,8 @@ class Usage:
 
     """
 
-def passInfo(folder, config, conn):
-    runinfo = getRunInfo(folder + '/' + getattr(config, 'SEQ_RUN_INFO_FILE'))
+def getRunInfo(folder, config, conn):
+    runinfo = parseRunInfo(folder + '/' + getattr(config, 'SEQ_RUN_INFO_FILE'))
     flowcellID = folder.split('_')[-1].upper()
     machine,   = re.findall('(?<=/sequencers/).+?/', folder)
     machine    = re.sub(r'/', r'', machine)
@@ -64,7 +64,7 @@ def main(name, dbfile):
     timestamp = TimeString()
     timestamp.print_timestamp()
     for folder in folders:
-        passInfo(folder, config, conn)
+        getRunInfo(folder, config, conn)
     cron_control.update_rf('\n'.join(list(todayFolders)) + '\n')
 
 

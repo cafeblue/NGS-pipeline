@@ -9,7 +9,7 @@ import re
 import parseInterOp
 from pathlib import Path
 from utils.dbtools import DB_Connector 
-from utils.sequencers import getRunInfo, SampleSheet
+from utils.sequencers import parseRunInfo, SampleSheet
 from utils.common import TimeString
 from utils.config import GlobalConfig
 from utils.SendEmail import SendEmail
@@ -70,7 +70,7 @@ def main(name, dbfile):
         samplesheet = SampleSheet(ssRows, conn, timestamp)
         samplesheet.demultiplex_samplesheet()
 
-        realCycleNum = sum(getRunInfo(runningSeq['destinationDir'] + "/" + getattr(config, 'SEQ_RUN_INFO_FILE'))['NumCycles'])
+        realCycleNum = sum(parseRunInfo(runningSeq['destinationDir'] + "/" + getattr(config, 'SEQ_RUN_INFO_FILE'))['NumCycles'])
         if realCycleNum != int(runningSeq['cycleNum']) :
             conn.Execute("UPDATE thing1JobStatus SET sequencing = '0' where flowcellID = '%s'" % (runningSeq['flowcellID']))
             SendEmail( "%s on %s failed!!" % (runningSeq['flowcellID'], runningSeq['machine']), "weiw.wang@sickkids.ca", "%s failed. The final cycle number, %d does not equal to the initialed cycle number %s \n" % (runningSeq['runDir'], realCycleNum, runningSeq['cycleNum']))
