@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 import subprocess 
 from utils.dbtools import DB_Connector, CronControlPanel, getActiveRunFolders
-from utils.sequencers import parseRunInfo
+from utils.sequencers import parseRemoteRunInfo
 from utils.common import TimeString
 from utils.config import GlobalConfig
 from utils.SendEmail import SendEmail
@@ -22,18 +22,18 @@ class Usage:
     """
 
 def getRunInfo(folder, config, conn):
-    runinfo = parseRunInfo(folder + '/' + getattr(config, 'SEQ_RUN_INFO_FILE'))
+    runinfo = parseRemoteRunInfo(folder + '/' + getattr(config, 'SEQ_RUN_INFO_FILE'))
     flowcellID = folder.split('_')[-1].upper()
     machine,   = re.findall('(?<=/sequencers/).+?/', folder)
     machine    = re.sub(r'/', r'', machine)
 
     if "NumCycles" in runinfo.keys():
-        msg = UpdateDatabase(conn, flowcellID, machine, folder, getattr(config, 'RUN_BACKUP_FOLDER') + folder.split('/')[-1], runinfo)
+        msg = Update_thing1JobStatus(conn, flowcellID, machine, folder, getattr(config, 'RUN_BACKUP_FOLDER') + folder.split('/')[-1], runinfo)
         SendEmail( "Sequencing folder for " + flowcellID + " found.", "weiw.wang@sickkids.ca", msg)
     else:
-        SendEmail(flowcellID + " Error", "weiw.wang@sickkids.ca", "Failed to check the cyclenumbers or cycle number equal to 0?")
+        SendEmail("flowcell(ID: " + flowcellID + ") Error", "weiw.wang@sickkids.ca", "Failed to check the cyclenumbers or cycle number equal to 0?")
 
-def UpdateDatabase(conn, flowcellID, machine, folder, destfolder, runinfo):
+def Update_thing1JobStatus(conn, flowcellID, machine, folder, destfolder, runinfo):
     if len(conn.Execute("SELECT * from thing1JobStatus where flowcellID = '" + flowcellID + "'")) > 0:
         return flowcellID + " already exists in the table thing1JobStatus, please check if there are two or more running folders of this flowcell on the sequencer.\n"
     else:
@@ -55,6 +55,7 @@ def main(name, dbfile):
     runningFolders = set(cron_control.get_rf().rstrip().split('\n'))
 
     command = 'find %s  -maxdepth 1 -name "??????_[DNM]*_????_*" -mtime -1 ' %  (getActiveRunFolders(conn))
+    command = "ssh wei.wang@thing1.sickkids.ca '" + command + "'";
     todayFolders = set(subprocess.run(command, stdout=subprocess.PIPE, shell=True).stdout.decode("utf-8").rstrip().split('\n'))
 
     folders = todayFolders - runningFolders;

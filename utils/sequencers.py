@@ -3,6 +3,7 @@ import re
 import subprocess
 from pathlib import Path
 from utils.config import GlobalConfig
+from utils.SendEmail import *
 
 def parseRunInfo(folder):
     runinfo = { 'LaneCount': 0, 'SurfaceCount': 0, 'SwathCount': 0, 'TileCount': 0, 'SectionPerLane': 0, 'LanePerSection': 0 }
@@ -19,6 +20,37 @@ def parseRunInfo(folder):
                 flowcellLayout, num = items.split('=')
                 num = int(re.sub(r'"', r'', num))
                 runinfo[flowcellLayout] = num
+    return runinfo
+
+def parseRemoteRunInfo(folder):
+    runinfo = { 'LaneCount': 0, 'SurfaceCount': 0, 'SwathCount': 0, 'TileCount': 0, 'SectionPerLane': 0, 'LanePerSection': 0 }
+
+    command = 'ssh wei.wang@thing1.sickkids.ca grep "NumCycles=" ' + folder
+    numcycles = []
+    try:
+        numcycles = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE).stdout.decode("utf-8")
+    except subprocess.CalledProcessError as grepexc: 
+        SendEmail("grep failed.", "weiw.wang@sickkids.ca", "Please check the following command:\n\n" + command + "\n\n" + "error code: " + str(grepexc.returncode) + "\n\n" + str(grepexc.output))
+        return runinfo
+
+    #numcycles = subprocess.run(command, stdout=subprocess.PIPE, shell=True).stdout.decode("utf-8")
+    if numcycles.count('NumCycles="') == 3 :
+        cycNum1, indexCycNum, cycNum2 = re.findall('(?<=NumCycles=")\d+', numcycles)
+        runinfo['NumCycles'] = [int(cycNum1), int(indexCycNum), int(cycNum2)]
+
+    command = 'ssh wei.wang@thing1.sickkids.ca grep "\<FlowcellLayout" ' + folder
+    current_runinfo = []
+    try:
+        current_runinfo = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE).stdout.decode("utf-8").split(' ')
+    except subprocess.CalledProcessError as grepexc: 
+        SendEmail("grep failed.", "weiw.wang@sickkids.ca", "Please check the following command:\n\n" + command + "\n\n" + "error code: " + str(grepexc.returncode) + "\n\n" + str(grepexc.output))
+        return runinfo
+
+    for items in current_runinfo: 
+        if re.match('\w+="\d+"', items) :
+            flowcellLayout, num = items.split('=')
+            num = int(re.sub(r'"', r'', num))
+            runinfo[flowcellLayout] = num
     return runinfo
 
 class Sequencers():
@@ -69,9 +101,17 @@ class SampleSheet(Sequencers, ilmnBarCode, GlobalConfig):
             self.samplesheet = getattr(self, re.sub(r'_.*', "", getattr(self, fc)))
             self.samplesheet(rows)
 
-            print(self.samplesheetstring)
-            f = open( self.sequencer['sampleSheetFolder'] + "/%s_%s_samplesheet.csv" % (self.time.longdate, fc), 'w')
+            #print(self.samplesheetstring)
+            tmpfilename = "/hpf/largeprojects/pray/recycle.bin/%s_%s_samplesheet.csv" % (self.time.longdate, fc)
+            f = open(tmpfilename , 'w')
             f.write(self.samplesheetstring)
+            f.close()
+            command =  "scp %s pipeline@thing1.sickkids.ca:%s/%s_%s_AUTOTESTING_samplesheet.csv" % (tmpfilename, self.sequencer['sampleSheetFolder'], self.time.longdate, fc)
+            try:
+                subprocess.run(command, shell=True, check=True)
+            except subprocess.CalledProcessError as grepexc:
+                SendEmail("Failed to generate the sampleSheet file for flowcell " + row['flowcellID'], "weiw.wang@sickkids.ca", "Please check the following command:\n\n" + command + "\n\n" + "error code: " + str(grepexc.returncode) + "\n\n" + str(grepexc.output))
+
 
     def demultiplex_samplesheet(self):
         for fc,rows in self.byflowcell.items():

@@ -41,7 +41,6 @@ def getSequencingList(config, conn):
     sys.exit(0)
 
 def check_status(runningSeq, config):
-    runningSeq['destinationDir'] = re.sub(r'wei.wang@data1.ccm.sickkids.ca:', '', runningSeq['destinationDir'])
     if Path(runningSeq['destinationDir'] + eval(getattr(config, "LAST_BCL_" + re.sub(r'_.{1,2}$', '', runningSeq['machine'])))).is_file():
         completeFile = runningSeq['destinationDir'] + getattr(config, "COMPLETE_FILE_" + re.sub(r'_.{1,2}$', '', runningSeq['machine']))
         if Path(completeFile).is_file() :
