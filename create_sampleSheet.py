@@ -1,4 +1,4 @@
-#! /bin/env python3 -u
+#! /bin/env python3
 
 """
     This script is to read the latest records in table sampleSheet and generate the samplesheet for the sequencer.
@@ -32,7 +32,7 @@ def main(name, dbfile):
         sys.exit(2)
 
     conn = DB_Connector(dbfile)
-    newRows = conn.Execute("SELECT * FROM sampleSheet WHERE TIMESTAMPADD(SECOND,3600,time) > NOW()")
+    newRows = conn.Execute("SELECT * FROM sampleSheet WHERE TIMESTAMPADD(SECOND,60,time) > NOW()")
 
     if len(newRows) == 0 :
         sys.exit(0)
