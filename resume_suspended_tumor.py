@@ -49,7 +49,7 @@ def main(name, dbfile):
         conn.Execute("UPDATE sampleInfo SET currentStatus = '0' WHERE postprocID = '%s'" % (tumor['postprocID']))
 
     if email_content != '':
-        SendEmail("Re-Submission Failed", "weiw.wang@sickkids.ca", email_content) 
+        SendEmail("Re-Submission Failed", "ledia.brunga@sickkids.ca, scott.davidson@sickkids.ca, weiw.wang@sickkids.ca", email_content) 
 
 if __name__ == '__main__':
 

@@ -1,3 +1,3 @@
 __all__ = [
-    "dbtools", "sequencers", "SendEmail", "config", "common", "jsub"
+    "dbtools", "sequencers", "SendEmail", "config", "common", "jsub", "HPF"
 ]

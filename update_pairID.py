@@ -82,8 +82,8 @@ def main(name, dbfile, flowcellfile):
             sys.exit(0)
 
     print("There are %d samples in your file." % (num_update))
-    print(mysqlCMD)
-    #conn.Execute(mysqlCMD)
+    print(mysqlCMD.replace("; ", "\n"))
+    conn.Execute(mysqlCMD)
 
 if __name__ == '__main__':
 

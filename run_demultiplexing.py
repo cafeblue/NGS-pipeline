@@ -74,11 +74,11 @@ def main(name, dbfile):
             conn.Execute("UPDATE thing1JobStatus SET sequencing = '0' where flowcellID = '%s'" % (runningSeq['flowcellID']))
             SendEmail( "%s on %s failed!!" % (runningSeq['flowcellID'], runningSeq['machine']), "weiw.wang@sickkids.ca", "%s failed. The final cycle number, %d does not equal to the initialed cycle number %s \n" % (runningSeq['runDir'], realCycleNum, runningSeq['cycleNum']))
         else:
-            jsubLogFolder = getattr(config, 'JSUB_LOG_FOLDER') + "demultiplex_" + runningSeq['machine'] + '_' + runningSeq['flowcellID'] + "_" + timestamp.fulltime 
+            jsubLogFolder = getattr(config, 'JSUB_LOG_FOLDER') + "dmplx_" + runningSeq['flowcellID'] + "_" + timestamp.longdate 
             command = "bcl2fastq -R %s -o %s --sample-sheet %s" % (runningSeq['destinationDir'], getattr(config, "FASTQ_FOLDER") + runningSeq['machine'] + "_" + runningSeq['flowcellID'], samplesheet.sampleSheetFile)
-            jobID = jsub( "demultiplex_" + runningSeq['machine'] + '_' + runningSeq['flowcellID'] + "_" + timestamp.fulltime, getattr(config, 'JSUB_LOG_FOLDER'),  command, "22000", "12", "01:00:00", "30", "bcl2fastq/2.19.0", '', '1')
+            jobID = jsub( "dmplx_" + runningSeq['flowcellID'] + "_" + timestamp.longdate, getattr(config, 'JSUB_LOG_FOLDER'),  command, "22000", "12", "01:00:00", "30", "bcl2fastq/2.19.0", '', '1')
             conn.Execute("UPDATE thing1JobStatus SET sequencing = '1', demultiplexJobID = '%s' , demultiplex = '2' , seqFolderChksum = '2', demultiplexJfolder = '%s' where flowcellID = '%s'" % (jobID, jsubLogFolder, runningSeq['flowcellID']))
-            SendEmail( "status of %s on %s" % (runningSeq['flowcellID'], runningSeq['machine']), "weiw.wang@sickkids.ca", "Sequencing finished successfully, demultiplexing is starting...\n")
+            SendEmail( "Status of %s on %s" % (runningSeq['flowcellID'], runningSeq['machine']), "weiw.wang@sickkids.ca", "Sequencing finished successfully, demultiplexing is starting...\n")
             ###  interOp
             parseInterOp(conn, runningSeq['destinationDir'], runningSeq['flowcellID'])
 
