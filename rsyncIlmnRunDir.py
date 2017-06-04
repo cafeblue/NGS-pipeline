@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 import subprocess 
 from utils.dbtools import DB_Connector, CronControlPanel
-from utils.common import TimeString
+from utils.TimeString import TimeString
 from utils.SendEmail import SendEmail
 
 class Usage:
@@ -19,7 +19,8 @@ class Usage:
         Example: python3 rsyncIlmnRunDir.py clinicalB.cnf
 
     """
-def rsync_folder(conn):
+def rsync_folder(dbfile):
+    conn = DB_Connector(dbfile)
     runningfolder = conn.Execute("SELECT rundir,destinationDir,flowcellID FROM thing1JobStatus WHERE sequencing = '2'")
     if len(runningfolder) != 0:
         timestamp = TimeString()
@@ -31,7 +32,8 @@ def rsync_folder(conn):
             except subprocess.CalledProcessError as grepexc: 
                 SendEmail("rsync failed for flowcellID: " + row['flowcellID'], "weiw.wang@sickkids.ca", "Please check the following command:\n\n" + command + "\n\n" + "error code: " + str(grepexc.returncode) + "\n\n" + str(grepexc.output))
 
-def check_failed_flowcell(conn):
+def check_failed_flowcell(dbfile):
+    conn = DB_Connector(dbfile)
     runningfolder = conn.Execute("SELECT flowcellID,machine FROM thing1JobStatus WHERE sequencing = '2' AND TIMESTAMPADD(HOUR,36,time)<CURRENT_TIMESTAMP")
     if len(runningfolder) != 0:
         timestamp = TimeString()
@@ -54,8 +56,12 @@ def main(name, dbfile):
     conn = DB_Connector(dbfile)
     cron_control = CronControlPanel(conn)
     cron_control.start_process('rsync_sequencer')
-    rsync_folder(conn)
-    check_failed_flowcell(conn)
+    conn.DestroyConnection()
+
+    rsync_folder(dbfile)
+    check_failed_flowcell(dbfile)
+    conn = DB_Connector(dbfile)
+    cron_control = CronControlPanel(conn)
     cron_control.stop_process('rsync_sequencer')
 
 if __name__ == '__main__':

@@ -12,6 +12,8 @@ def parseInterOp(conn, run_folder, flowcellID):
     summary = py_interop_summary.run_summary()
     py_interop_summary.summarize_run_metrics(run_metrics, summary)
 
+    infors = {}
+
     # read 1
     readsClusterDensity = ",".join(str(int(round(summary.at(0).at(i).density().mean()/1000.0))) + "+/-" + str(int(round(summary.at(0).at(i).density().stddev()/1000.0))) for i in range(summary.lane_count()))
     perReadsPassingFilter = ",".join(str(round(summary.at(0).at(i).reads_pf()/1000000.0, 2)) for i in range(summary.lane_count()))
@@ -20,6 +22,12 @@ def parseInterOp(conn, run_folder, flowcellID):
     aligned = ",".join(str(round(summary.at(0).at(i).percent_aligned().mean(), 2)) + "+/-" + str(round(summary.at(0).at(i).percent_aligned().stddev(), 2)) for i in range(summary.lane_count()))
     errorRate = ",".join(str(round(summary.at(0).at(i).error_rate().mean(), 2)) + "+/-" + str(round(summary.at(0).at(i).error_rate().stddev(), 2)) for i in range(summary.lane_count()))
     clusterPF = ",".join(str(round(summary.at(0).at(i).percent_pf().mean(), 2)) + "+/-" + str(round(summary.at(0).at(i).percent_pf().stddev(), 2)) for i in range(summary.lane_count())) 
+
+    infors['readsClusterDensity'] = [round(summary.at(0).at(i).density().mean()/1000.0) for i in range(summary.lane_count())]
+    infors['perReadsPassingFilter'] = [round(summary.at(0).at(i).reads_pf()/1000000.0, 2) for i in range(summary.lane_count())]
+    infors['ErrorRate'] = [round(summary.at(0).at(i).error_rate().mean(), 2) for i in range(summary.lane_count())]
+    infors['perQ30Score'] = [round(summary.at(0).at(i).percent_gt_q30(), 2) for i in range(summary.lane_count())]
+    infors['numTotalReads'] = [round(summary.at(0).at(i).reads()/1000000.0, 2) for i in range(summary.lane_count())]
 
     # read 2
     readsClusterDensity += "," + ",".join(str(int(round(summary.at(2).at(i).density().mean()/1000.0))) + "+/-" + str(int(round(summary.at(2).at(i).density().stddev()/1000.0))) for i in range(summary.lane_count()))
@@ -30,8 +38,15 @@ def parseInterOp(conn, run_folder, flowcellID):
     errorRate += "," + ",".join(str(round(summary.at(2).at(i).error_rate().mean(), 2)) + "+/-" + str(round(summary.at(2).at(i).error_rate().stddev(), 2)) for i in range(summary.lane_count()))
     clusterPF += "," + ",".join(str(round(summary.at(2).at(i).percent_pf().mean(), 2)) + "+/-" + str(round(summary.at(2).at(i).percent_pf().stddev(), 2)) for i in range(summary.lane_count())) 
  
+    infors['readsClusterDensity'].extend(round(summary.at(0).at(i).density().mean()/1000.0) for i in range(summary.lane_count())) 
+    infors['perReadsPassingFilter'].extend(round(summary.at(0).at(i).reads_pf()/1000000.0, 2) for i in range(summary.lane_count()))
+    infors['ErrorRate'].extend(round(summary.at(0).at(i).error_rate().mean(), 2) for i in range(summary.lane_count()))
+    infors['perQ30Score'].extend(round(summary.at(0).at(i).percent_gt_q30(), 2) for i in range(summary.lane_count()))
+    infors['numTotalReads'].extend(round(summary.at(0).at(i).reads()/1000000.0, 2) for i in range(summary.lane_count()))
+
     print("UPDATE thing1JobStatus SET `readsClusterDensity` = '%s', clusterPF = '%s', `numTotalReads` = '%s', `perReadsPassingFilter` = '%s', `perQ30Score` = '%s', aligned = '%s', `ErrorRate` = '%s' WHERE flowcellID = '%s'" % (readsClusterDensity, clusterPF, numTotalReads, perReadsPassingFilter, perQ30Score, aligned, errorRate, flowcellID))
     conn.Execute("UPDATE thing1JobStatus SET `readsClusterDensity` = '%s', clusterPF = '%s', `numTotalReads` = '%s', `perReadsPassingFilter` = '%s', `perQ30Score` = '%s', aligned = '%s', `ErrorRate` = '%s' WHERE flowcellID = '%s'" % (readsClusterDensity, clusterPF, numTotalReads, perReadsPassingFilter, perQ30Score, aligned, errorRate, flowcellID))
+    return infors
 
 if __name__ == '__main__':
     if len(sys.argv) != 4:

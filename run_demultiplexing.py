@@ -6,11 +6,12 @@ This script is to find the finished runfolders on the sequencers and run demulti
 import sys
 import os
 import re
-import parseInterOp
+from parseInterOp import parseInterOp
 from pathlib import Path
 from utils.dbtools import DB_Connector 
 from utils.sequencers import parseRunInfo, SampleSheet
-from utils.common import TimeString
+from utils.TimeString import TimeString
+from utils.QualityControl import QualityControl
 from utils.config import GlobalConfig
 from utils.SendEmail import SendEmail
 from utils.jsub import jsub
@@ -44,7 +45,7 @@ def check_status(runningSeq, config):
     if Path(runningSeq['destinationDir'] + eval(getattr(config, "LAST_BCL_" + re.sub(r'_.{1,2}$', '', runningSeq['machine'])))).is_file():
         completeFile = runningSeq['destinationDir'] + getattr(config, "COMPLETE_FILE_" + re.sub(r'_.{1,2}$', '', runningSeq['machine']))
         if Path(completeFile).is_file() :
-            if (datetime.now() - datetime.fromtimestamp(os.path.getmtime(completeFile))).seconds > 600:
+            if (datetime.now() - datetime.fromtimestamp(os.path.getmtime(completeFile))).seconds > 3600:
                 return 1
     return 2
 
@@ -75,12 +76,17 @@ def main(name, dbfile):
             SendEmail( "%s on %s failed!!" % (runningSeq['flowcellID'], runningSeq['machine']), "weiw.wang@sickkids.ca", "%s failed. The final cycle number, %d does not equal to the initialed cycle number %s \n" % (runningSeq['runDir'], realCycleNum, runningSeq['cycleNum']))
         else:
             jsubLogFolder = getattr(config, 'JSUB_LOG_FOLDER') + "dmplx_" + runningSeq['flowcellID'] + "_" + timestamp.longdate 
-            command = "bcl2fastq -R %s -o %s --sample-sheet %s" % (runningSeq['destinationDir'], getattr(config, "FASTQ_FOLDER") + runningSeq['machine'] + "_" + runningSeq['flowcellID'], samplesheet.sampleSheetFile)
-            jobID = jsub( "dmplx_" + runningSeq['flowcellID'] + "_" + timestamp.longdate, getattr(config, 'JSUB_LOG_FOLDER'),  command, "22000", "12", "01:00:00", "30", "bcl2fastq/2.19.0", '', '1')
+            command = "bcl2fastq -R %s -o %s --sample-sheet %s" % (runningSeq['destinationDir'], getattr(config, "FASTQ_FOLDER") + runningSeq['flowcellID'], samplesheet.sampleSheetFile)
+            jobID = jsub( "dmplx_" + runningSeq['flowcellID'] + "_" + timestamp.longdate, getattr(config, 'JSUB_LOG_FOLDER'),  command, "22000", "12", "02:00:00", "30", "bcl2fastq/2.19.0", '', '1')
+            print("jobID: %s" % (jobID))
             conn.Execute("UPDATE thing1JobStatus SET sequencing = '1', demultiplexJobID = '%s' , demultiplex = '2' , seqFolderChksum = '2', demultiplexJfolder = '%s' where flowcellID = '%s'" % (jobID, jsubLogFolder, runningSeq['flowcellID']))
             SendEmail( "Status of %s on %s" % (runningSeq['flowcellID'], runningSeq['machine']), "weiw.wang@sickkids.ca", "Sequencing finished successfully, demultiplexing is starting...\n")
-            ###  interOp
-            parseInterOp(conn, runningSeq['destinationDir'], runningSeq['flowcellID'])
+            
+            ### QC 4 flowcell                                               ###  interOp
+            qc = QualityControl(conn) 
+            emailcontent = qc.qc4flowcell(runningSeq['flowcellID'], runningSeq['machine'].replace("_1R", "").replace("_2", "").replace("_1", ""), parseInterOp(conn, runningSeq['destinationDir'], runningSeq['flowcellID']))
+            if emailcontent != '':
+                SendEmail("QC warning for flowcell %s on machine %s" %(runningSeq['flowcellID'], runningSeq['machine']), 'weiw.wang@sickkids.ca', emailcontent) 
 
 if __name__ == '__main__':
 

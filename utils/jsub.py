@@ -4,11 +4,17 @@
    parameters: jobname, basefolder, command, memory size, #cores, walltime, swap disk space, modules, depend, #nodes to be loaded
 '''
 import re
+import os
 import subprocess
 from pathlib import Path
 from utils.config import GlobalConfig
+from utils.SendEmail import SendEmail
 
 def jsub(jobname, basefolder, command, mem, cpus, wt, ng, modules, depend='', nodes='1'):
+    if os.path.isdir(basefolder + "/" + jobname):
+         SendEmail("deleting a jsub folder....", "weiw.wang@sickkids.ca", basefolder + "/" + jobname)
+         subprocess.run("rm -rf %s/%s" % (basefolder, jobname), shell=True)
+
     jcmd = "echo 'export TMPDIR=/localhd/`echo $PBS_JOBID | cut -d. -f1 ` && \\\n"
     jcmd += "\\\n module load %s  &&  \\\n" % (modules)
     jcmd += "\\\n"

@@ -106,7 +106,7 @@ class SampleSheet(Sequencers, ilmnBarCode, GlobalConfig):
             f = open(tmpfilename , 'w')
             f.write(self.samplesheetstring)
             f.close()
-            command =  "scp %s pipeline@thing1.sickkids.ca:%s/%s_%s_AUTOTESTING_samplesheet.csv" % (tmpfilename, self.sequencer['sampleSheetFolder'], self.time.longdate, fc)
+            command =  "scp %s pipeline@thing1.sickkids.ca:%s/AUTOTESTING-DONOTUSE-%s_%s_samplesheet.csv" % (tmpfilename, self.sequencer['sampleSheetFolder'], self.time.longdate, fc)
             try:
                 subprocess.run(command, shell=True, check=True)
             except subprocess.CalledProcessError as grepexc:

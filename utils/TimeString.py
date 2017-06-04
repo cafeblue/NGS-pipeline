@@ -1,6 +1,6 @@
 #! /bin/env python3
 import sys
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
 
 class TimeString():
     """ generate a string of the date/time"""
@@ -10,7 +10,7 @@ class TimeString():
         self.fulltime = self.timestring.strftime("%Y%m%d%H%M%S")
         self.dateslash = self.timestring.strftime('%m/%d/%Y')
         self.longdate = self.timestring.strftime('%Y%m%d')
-        self.yesterday = self.timestring.replace(day=self.timestring.day-1).strftime('%Y%m%d')
+        self.yesterday = (date.today() - timedelta(1)).strftime('%Y%m%d')
         self.timestamp = self.timestring.strftime("%Y-%m-%d %H:%M:%S")
 
     def print_timestamp(self):

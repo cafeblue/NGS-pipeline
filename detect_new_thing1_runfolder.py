@@ -8,7 +8,7 @@ from pathlib import Path
 import subprocess 
 from utils.dbtools import DB_Connector, CronControlPanel, getActiveRunFolders
 from utils.sequencers import parseRemoteRunInfo
-from utils.common import TimeString
+from utils.TimeString import TimeString
 from utils.config import GlobalConfig
 from utils.SendEmail import SendEmail
 
@@ -54,7 +54,7 @@ def main(name, dbfile):
     cron_control = CronControlPanel(conn)
     runningFolders = set(cron_control.get_rf().rstrip().split('\n'))
 
-    command = 'find %s  -maxdepth 1 -name "??????_[DNM]*_????_*" -mtime -1 ' %  (getActiveRunFolders(conn))
+    command = 'find %s  -maxdepth 1 -name "??????_[DNM]*_????_?????*" -mtime -1 ' %  (getActiveRunFolders(conn))
     command = "ssh wei.wang@thing1.sickkids.ca '" + command + "'";
     todayFolders = set(subprocess.run(command, stdout=subprocess.PIPE, shell=True).stdout.decode("utf-8").rstrip().split('\n'))
 

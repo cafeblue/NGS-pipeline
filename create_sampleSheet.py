@@ -8,7 +8,7 @@
 import sys
 from pathlib import Path
 from utils.dbtools import DB_Connector
-from utils.common import TimeString
+from utils.TimeString import TimeString
 from utils.sequencers import SampleSheet
 
 class Usage:
