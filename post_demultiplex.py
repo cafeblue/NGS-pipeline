@@ -57,13 +57,15 @@ def insertIntoSampleInfo_QC(conn, samplesheet, demultiplex, config, gpconfig):
         pipeID = getattr(gpconfig, keywd)['pipeID']
         if sample['sample_type'] == 'tumor':
             pipeID += '-t'
-        if sample['pairedSampleID'] is None:
+        if sample['pairedSampleID'] == '':
             sample['pairedSampleID'] = '0'
         ## Insert into table sampleInfo
         conn.Execute("INSERT INTO sampleInfo (sampleID, flowcellID, machine, captureKit, pairID, genePanelVer, pipeID, filterID, annotateID, yieldMB, numReads, perQ30Bases, specimen, sampleType, testType, priority, currentStatus, pipeThing1Ver, pipeHPFVer, webVer, perIndex ) VALUES ('%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s', '%s', '%s','%s','%s','%s','%s','%s','%s')" % (sample['sampleID'], sample['flowcell_ID'], sample['machine'], sample['capture_kit'], sample['pairedSampleID'], sample['gene_panel'], pipeID, getattr(gpconfig, keywd)['filterID'], getattr(gpconfig, keywd)['annotationID'], demultiplex[sample['sampleID']]['yieldMB'], demultiplex[sample['sampleID']]['numReads'], demultiplex[sample['sampleID']]['perQ30Bases'], sample['specimen'], sample['sample_type'], sample['testType'], sample['priority'], 0, '', pipelinever, webver, demultiplex[sample['sampleID']]['perIndex'] ))
         ##  qc4sampleLevel1
         qc1 = QualityControl(conn)
-        emailcontent += "sampleID %s:\n" % (sample['sampleID']) + qc1.qc4sample(sample['sampleID'], sample['machine'].replace("_1R", "").replace("_2", "").replace("_1", ""), sample['capture_kit'], demultiplex[sample['sampleID']], 1) + "\n"
+        tmpcont = qc1.qc4sample(sample['sampleID'], sample['machine'].replace("_1R", "").replace("_2", "").replace("_1", ""), sample['capture_kit'], demultiplex[sample['sampleID']], 1)
+        if tmpcont != "":
+            emailcontent += "sampleID %s:\n" % (sample['sampleID']) + tmpcont + "\n"
     if emailcontent != "":
         SendEmail("QC Warnings for samples on flowcell %s" % (samplesheet[0]['flowcell_ID']), 'weiw.wang@sickkids.ca', emailcontent)
 
