@@ -28,7 +28,7 @@ def getRunInfo(folder, config, conn):
     machine    = re.sub(r'/', r'', machine)
 
     if "NumCycles" in runinfo.keys():
-        msg = Update_thing1JobStatus(conn, flowcellID, machine, folder, getattr(config, 'RUN_BACKUP_FOLDER') + folder.split('/')[-1], runinfo)
+        msg = Update_thing1JobStatus(conn, flowcellID, machine, folder, getattr(config, 'SEQ_BACKUP_FOLDER') + folder.split('/')[-1], runinfo)
         SendEmail( "Sequencing folder for " + flowcellID + " found.", "weiw.wang@sickkids.ca", msg)
     else:
         SendEmail("flowcell(ID: " + flowcellID + ") Error", "weiw.wang@sickkids.ca", "Failed to check the cyclenumbers or cycle number equal to 0?")

@@ -78,7 +78,6 @@ def main(name, dbfile):
             jsubLogFolder = getattr(config, 'JSUB_LOG_FOLDER') + "dmplx_" + runningSeq['flowcellID'] + "_" + timestamp.longdate 
             command = "bcl2fastq -R %s -o %s --sample-sheet %s" % (runningSeq['destinationDir'], getattr(config, "FASTQ_FOLDER") + runningSeq['flowcellID'], samplesheet.sampleSheetFile)
             jobID = jsub( "dmplx_" + runningSeq['flowcellID'] + "_" + timestamp.longdate, getattr(config, 'JSUB_LOG_FOLDER'),  command, "22000", "12", "02:00:00", "30", "bcl2fastq/2.19.0", '', '1')
-            print("jobID: %s" % (jobID))
             conn.Execute("UPDATE thing1JobStatus SET sequencing = '1', demultiplexJobID = '%s' , demultiplex = '2' , seqFolderChksum = '2', demultiplexJfolder = '%s' where flowcellID = '%s'" % (jobID, jsubLogFolder, runningSeq['flowcellID']))
             SendEmail( "Status of %s on %s" % (runningSeq['flowcellID'], runningSeq['machine']), "weiw.wang@sickkids.ca", "Sequencing finished successfully, demultiplexing is starting...\n")
             

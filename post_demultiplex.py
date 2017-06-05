@@ -68,6 +68,8 @@ def insertIntoSampleInfo_QC(conn, samplesheet, demultiplex, config, gpconfig):
             emailcontent += "sampleID %s:\n" % (sample['sampleID']) + tmpcont + "\n"
     if emailcontent != "":
         SendEmail("QC Warnings for samples on flowcell %s" % (samplesheet[0]['flowcell_ID']), 'weiw.wang@sickkids.ca', emailcontent)
+    ### Undetermined
+    conn.Execute("UPDATE thing1JobStatus SET undeterminedReads = '%s', perUndetermined = '%s' WHERE flowcellID = '%s'" % (demultiplex[sample['sampleID']]['numReads'], demultiplex[sample['sampleID']]['perIndex'], samplesheet[0]['flowcell_ID']))
 
 def postDemultiplex(row, conn, config, gpconfig):
     conn.Execute("UPDATE thing1JobStatus SET demultiplex = '1' WHERE flowcellID = '%s'" % (row['flowcellID']))

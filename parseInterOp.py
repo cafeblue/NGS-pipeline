@@ -44,7 +44,6 @@ def parseInterOp(conn, run_folder, flowcellID):
     infors['perQ30Score'].extend(round(summary.at(0).at(i).percent_gt_q30(), 2) for i in range(summary.lane_count()))
     infors['numTotalReads'].extend(round(summary.at(0).at(i).reads()/1000000.0, 2) for i in range(summary.lane_count()))
 
-    print("UPDATE thing1JobStatus SET `readsClusterDensity` = '%s', clusterPF = '%s', `numTotalReads` = '%s', `perReadsPassingFilter` = '%s', `perQ30Score` = '%s', aligned = '%s', `ErrorRate` = '%s' WHERE flowcellID = '%s'" % (readsClusterDensity, clusterPF, numTotalReads, perReadsPassingFilter, perQ30Score, aligned, errorRate, flowcellID))
     conn.Execute("UPDATE thing1JobStatus SET `readsClusterDensity` = '%s', clusterPF = '%s', `numTotalReads` = '%s', `perReadsPassingFilter` = '%s', `perQ30Score` = '%s', aligned = '%s', `ErrorRate` = '%s' WHERE flowcellID = '%s'" % (readsClusterDensity, clusterPF, numTotalReads, perReadsPassingFilter, perQ30Score, aligned, errorRate, flowcellID))
     return infors
 

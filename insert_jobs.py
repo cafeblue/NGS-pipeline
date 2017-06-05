@@ -13,8 +13,8 @@ from utils.dbtools import DB_Connector
 class Usage:
     """
 
-        Usage: python3 rsyncIlmnRunDir.py database.cnf postprocID pipeID
-        Example: python3 rsyncIlmnRunDir.py clinicalB.cnf 2787 ilmn.cr.p5.1
+        Usage: python3 insert_jobs.py database.cnf postprocID pipeID
+        Example: python3 insert_jobs.py clinicalB.cnf 2787 ilmn.cr.p5.1
 
     """
 
